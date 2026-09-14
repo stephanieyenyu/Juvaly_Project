@@ -12,16 +12,19 @@ load_dotenv()
 if __name__ == "__main__":
     df = pd.read_csv("../data/labeled/validation_set.csv")
     correct, mismatches = 0, []
-    for _, row in df.iterrows():
+    for n, (_, row) in enumerate(df.iterrows()):
         try: llm = label_one(row["content"]).get("sentiment","")
-        except Exception: llm = "錯誤"
+        except Exception as e:
+            print(f"  [{n+1}/{len(df)}] 請求失敗: {e}")
+            llm = "錯誤"
         if llm == row["sentiment"]: correct += 1
         else: mismatches.append({
             "orig_post_id": int(row["orig_post_id"]),
             "human": row["sentiment"], "llm": llm,
             "excerpt": str(row["content"])[:35]
         })
-        time.sleep(0.3)
+        print(f"  [{n+1}/{len(df)}] 人工:{row['sentiment']} | LLM:{llm}")
+        time.sleep(2)
 
     accuracy = correct / len(df)
     result = {
@@ -34,7 +37,7 @@ if __name__ == "__main__":
     with open("../outputs/validation_result.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
 
-    print(f"情感準確率：{accuracy:.0%}（{correct}/{len(df)}）")
+    print(f"\n情感準確率：{accuracy:.0%}（{correct}/{len(df)}）")
     print("不一致案例：")
     for m in mismatches:
         print(f"  人工:{m['human']} | LLM:{m['llm']} | {m['excerpt']}")

@@ -1,15 +1,9 @@
 {
-  "run_at": "2026-09-14T15:37:42.607698",
+  "run_at": "2026-09-14T15:56:48.197796",
   "n": 33,
-  "correct": 21,
-  "sentiment_accuracy": 0.6364,
+  "correct": 24,
+  "sentiment_accuracy": 0.7273,
   "mismatches": [
-    {
-      "orig_post_id": 1,
-      "human": "正面",
-      "llm": "中性",
-      "excerpt": "不知道有沒有人跟我一樣，到了換季或是天氣逐漸變熱的時候 肌膚多少都會出"
-    },
     {
       "orig_post_id": 4,
       "human": "中性",
@@ -29,12 +23,6 @@
       "excerpt": "這是我最近在臉書看到廣告刷版，而去嘗試的一款新品牌，  Juva Sk"
     },
     {
-      "orig_post_id": 4,
-      "human": "中性",
-      "llm": "正面",
-      "excerpt": "從家人收到的禮物~ 本身已經不用化妝水類的產品一段時間了，所以這瓶用完"
-    },
-    {
       "orig_post_id": 5,
       "human": "正面",
       "llm": "中性",
@@ -47,16 +35,10 @@
       "excerpt": "看著看著 還是買了 本來沒什麼興趣 但因爲它含有 有機認証的玫瑰花水 "
     },
     {
-      "orig_post_id": 7,
-      "human": "中性",
-      "llm": "正面",
-      "excerpt": "本來期待它的味道，以為會是很特殊的草本香  結果只是玫瑰香 XD 好沒"
-    },
-    {
-      "orig_post_id": 2,
-      "human": "中性",
-      "llm": "正面",
-      "excerpt": "DR.WU玻尿酸系列算是我每隔一段時間就會想回購的產品之一，一種無功無"
+      "orig_post_id": 5,
+      "human": "正面",
+      "llm": "錯誤",
+      "excerpt": "首先感謝UrCosme與DR.WU，讓我有機會參與活動！！ 試用DR."
     },
     {
       "orig_post_id": 12,
