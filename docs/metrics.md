@@ -16,8 +16,9 @@ a reader reproduce each number, not to accept it.
 |---|---|
 | `data/labeled/*_labeled.csv` | post_id, brand, title, content, created_at, sentiment, pain_points, highlights |
 | `data/labeled/validation_set.csv` | 33 rows, human-labelled: brand, orig_post_id, sentiment, pain_points, highlights, content |
-| `outputs/competitor_summary_final.csv` | Aggregated counts from an earlier snapshot — see known-issues.md C-1 |
-| `outputs/final_competitor_analysis.png` | Figure from the same earlier snapshot |
+| `outputs/competitor_summary_final.csv` | Aggregated counts, regenerated from committed data — see known-issues.md C-1 |
+| `outputs/pain_point_ranking.csv` | Cross-brand pain-point ranking, regenerated from committed data — see known-issues.md C-3 |
+| `outputs/final_competitor_analysis.png` | Figure from an earlier snapshot — not regenerated, see known-issues.md C-1 |
 | `outputs/validation_result.json`, `validation_result_run1.json` | Two runs of the validation gate — see known-issues.md B-1, B-3 |
 | `data/raw/` | Absent. Pre-cleaning scrape output was not committed |
 
@@ -29,7 +30,6 @@ a reader reproduce each number, not to accept it.
 import pandas as pd, glob
 sum(len(pd.read_csv(f)) for f in glob.glob('data/labeled/*_labeled.csv'))
 ```
-
 
 | Figure | Value | Derivation |
 |---|---|---|
@@ -62,8 +62,8 @@ pd.read_csv(f)['sentiment'].value_counts()
 | Juvaly | 13 | 9 | 0 | 0 | 4 | 9 | 100% |
 | **All** | **500** | **241** | **129** | **19** | **111** | **389** | **62.0%** |
 
-Valid = Total − 非評論. Positive rate = 正面 ÷ Valid.
-
+Valid = Total − 非評論. Positive rate = 正面 ÷ Valid. This table now matches
+`outputs/competitor_summary_final.csv` exactly — see known-issues.md C-1.
 
 **What this figure does not claim.** Positive rate describes reviews published on @cosme Taiwan
 for that brand page. It is not a customer satisfaction rate, a market share signal, or a
@@ -74,21 +74,46 @@ rate by 11.1 points. The 100% figure is one row away from 88.9%.
 
 ---
 
+## Pain-Point Ranking
+
+```python
+# scripts/analyze.py, main() — pain_points exploded on ';', mapped through normalize_pain()
+```
+
+| Rank | Pain point | Mentions | Brands affected |
+|---|---|---|---|
+| 1 | 質地黏膩 | 37 | DR.WU, Inna Organic, menomeno+簡單, nomel, 綠藤 |
+| 2 | 效果無感 | 14 | DR.WU, menomeno+簡單, nomel, 綠藤 |
+| 3 | 吸收慢 | 13 | DR.WU, Inna Organic, menomeno+簡單, nomel, 綠藤 |
+| 4 | 價格偏高 | 12 | DR.WU, **Juvaly**, menomeno+簡單, nomel, 綠藤 |
+| 5 | 包裝設計 | 11 | DR.WU, Inna Organic, menomeno+簡單, 綠藤 |
+| 6 | 香味問題 | 9 | DR.WU, Inna Organic, menomeno+簡單, 綠藤 |
+
+**Juvaly's only pain-point mention is 價格偏高 (1 of 9 valid reviews), and it never appears under
+質地黏膩** — the market's single largest shared complaint. This is now reproducible from committed
+code, not the hand-tallied figure in `docs/juvaly_report.pdf`, which reports different counts
+(28 / 8 / 8 / 8 / 5 / 5) under a looser, undocumented matching rule. The two documents disagree;
+this table is the one that can be rerun.
+
+---
+
 ## Labelling Reliability
 
 | Figure | Value | Derivation |
 |---|---|---|
 | Rows marked 錯誤 | 0 | `value_counts()` across all six brand files |
-| Sentiment agreement with human labels | 64–67% (two runs) | `outputs/validation_result*.json`; replacement model, see known-issues.md B-1 |
+| Sentiment agreement with human labels | 69.7–72.7% (two runs) | `outputs/validation_result*.json`; replacement model, see known-issues.md B-1 |
 | Pain-point agreement | not measured | Never validated, see known-issues.md B-2 |
 | Highlight agreement | not measured | Never validated, see known-issues.md B-2 |
 | Repeat-run stability | 91% (30/33 identical) | Two runs, see known-issues.md B-3 |
 
-**Zero 錯誤 rows does not mean zero failures.** `label_with_retry()` returns
-`{"sentiment": "錯誤"}` only after five consecutive failures. A row that failed four times and
-succeeded on the fifth is indistinguishable from one that succeeded immediately.
+**Zero 錯誤 rows in the production data does not mean zero failures.** `label_with_retry()`
+returns `{"sentiment": "錯誤"}` only after five consecutive failures. A row that failed four times
+and succeeded on the fifth is indistinguishable from one that succeeded immediately. (One
+transient `錯誤` did appear in a validation run — see B-3 — consistent with this being a live
+risk, not a hypothetical one.)
 
-**64–67% was measured on a different model than the one that produced this data.**
+**69.7–72.7% was measured on a different model than the one that produced this data.**
 `llama-3.3-70b-versatile` was decommissioned by Groq on 2026-08-16, mid-project. The figure above
 is `openai/gpt-oss-120b`'s raw, uncorrected agreement with human labels — see known-issues.md C-6.
 It cannot be compared to the original labelling run, which is no longer queryable.
@@ -97,43 +122,44 @@ It cannot be compared to the original labelling run, which is no longer queryabl
 
 ## Reconciliation Against the Committed Summary
 
-
-`outputs/competitor_summary_final.csv` was produced from a different snapshot. Not yet fixed —
-see known-issues.md C-1 through C-4.
+`outputs/competitor_summary_final.csv` was regenerated on 2026-09-14 after fixing known-issues.md
+C-1 through C-4. All six brands now reconcile.
 
 | Brand | Summary valid | Data valid | Agrees |
 |---|---|---|---|
+| DR.WU | 123 | 123 | yes |
 | Inna Organic | 90 | 90 | yes |
+| 綠藤 | 96 | 96 | yes |
+| menomeno + 簡單 | 49 | 49 | yes |
 | nomel | 22 | 22 | yes |
-| DR.WU | 118 | 123 | no |
-| menomeno + 簡單 | 44 | 49 | no |
-| Juvaly | 33 | 9 | no |
-| 綠藤 | absent | 96 | not analysed |
-
-The Juvaly row is the largest discrepancy. `analyze.py` reads that brand from
-`data/labeled/labeled_reviews.csv`, a file not present here, while the committed Juvaly data is
-`juvaly_cosme_labeled.csv` with 13 rows. The two are different datasets.
+| Juvaly | 9 | 9 | yes |
 
 ---
 
 ## Interpretation
 
-### The committed figure and the committed data are not the same study
+### The committed figure and the committed data are now the same study
 
-Two of six brands reconcile. Treating the PNG or the summary CSV as evidence for the numbers in
-this repository would be wrong in both directions: the summary omits 綠藤 entirely, and its
-Juvaly column is computed over a dataset that is not here.
+As of 2026-09-14 this is no longer a caveat: `competitor_summary_final.csv` and
+`pain_point_ranking.csv` are both direct output of `analyze.py` run against the committed
+`data/labeled/*.csv`. The one artefact that remains stale is `final_competitor_analysis.png`,
+which `analyze.py` has no code path to regenerate.
 
 ### "62% positive overall" is an average of incomparable rates
 
 The six brands contribute 9 to 123 valid reviews each. The pooled rate is dominated by DR.WU,
 Inna Organic and 綠藤, which together supply 309 of the 389 valid rows.
 
-
 ### A 4.9% negative rate is now partially, not fully, explained
 
-The validation set is committed and has been run, but it contains only one 負面 case out of 33 —
-too few to say whether the codebook's negative definition is too narrow or the model
-under-applies it. That single case was missed (labelled 中性, not 正面). A properly stratified
-validation set, sampled to include more negative cases, is needed to say more — see
+The validation set is committed and has been run twice. It contains only one 負面 case out of
+33 — too few to say whether the codebook's negative definition is too narrow or the model
+under-applies it. That single case was missed in both runs (labelled 中性, not 正面). A properly
+stratified validation set, sampled to include more negative cases, is needed to say more — see
 known-issues.md's Open Problems.
+
+### Two authoritative documents now disagree on the pain-point ranking
+
+`docs/juvaly_report.pdf` and `outputs/pain_point_ranking.csv` both claim to rank the market's
+shared complaints, and give different numbers. Only the latter is reproducible from committed
+code. This is not resolved by this pass — it is a new, explicit disagreement raised by fixing C-3.
