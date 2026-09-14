@@ -13,7 +13,7 @@ the Groq API.
 | 1 Scrape | `crawler_brand.py` | @cosme brand page | `data/raw/competitor_<brand>_<id>_multipage.csv` |
 | 2 Clean (shared) | `clean_reviews.py` | in-memory DataFrame | in-memory DataFrame |
 | 3 Clean (brand page) | `clean_brand.py` | `data/raw/*_multipage.csv` | `data/raw/*_clean.csv` |
-| 4 Validate | `groq_validate.py` | `data/labeled/validation_set.csv` | stdout only |
+| 4 Validate | `groq_validate.py` | `data/labeled/validation_set.csv` | stdout + `outputs/validation_result.json` |
 | 5 Label | `groq_label_batch.py` | `data/raw/*_clean.csv` | `data/labeled/<brand>_labeled.csv` |
 | 6 Aggregate | `analyze.py` | `data/labeled/*.csv` | `outputs/competitor_summary_final.csv`, `.png` |
 | 7 Present | `app.py` | `data/labeled/*.csv` | Streamlit UI |
@@ -61,7 +61,9 @@ it was measured against.
 between pages, and a fifteen-second timeout. 503 responses back off at ten seconds times the
 attempt number, up to four attempts; three consecutive page failures stop the run.
 
-**Groq API.** `llama-3.3-70b-versatile`, temperature 0, `response_format={"type": "json_object"}`.
+**Groq API.** Originally `llama-3.3-70b-versatile`; decommissioned by Groq on 2026-08-16 partway
+through this project and migrated to `openai/gpt-oss-120b` — see `known-issues.md` C-6. Temperature
+0, `response_format={"type": "json_object"}`.
 Retries back off at twenty seconds times the attempt for rate-limit errors and five seconds
 otherwise, up to five attempts, after which the row is written as 錯誤 and can be picked up on a
 later run.
