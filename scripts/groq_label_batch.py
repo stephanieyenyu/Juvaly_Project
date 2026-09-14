@@ -8,7 +8,7 @@ from _codebook import CODEBOOK
 
 load_dotenv()
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-MODEL = "llama-3.3-70b-versatile"
+MODEL = "openai/gpt-oss-120b"
 
 INPUT_FILE = "../data/raw/competitor_BRAND_clean.csv"   # 改成目標檔
 OUTPUT_FILE = "../data/labeled/BRAND_labeled.csv"
