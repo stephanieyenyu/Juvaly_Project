@@ -4,21 +4,22 @@ Issues are classified by what is known about them, not by whether they were fixe
 item keeps its entry; the classification is the point. A-items were investigated and found not to
 be defects. B-items are unverified. C-items are defects. D-items are documentation debt.
 
-**Snapshot** 2026-09-13 · 500 labelled reviews across six brands
+**Snapshot** 2026-09-14 · 500 labelled reviews across six brands
 
 | ID | Issue | Class | Disposition |
 |---|---|---|---|
 | A-1 | No API key is committed | Not a defect | No action |
 | A-2 | No reviewer identifiers in the labelled data | Not a defect | No action |
-| B-1 | Sentiment agreement with human labels is unknown | Unverified | Open |
+| B-1 | Sentiment agreement with human labels is unknown | Verified | Below threshold — 64–67% |
 | B-2 | Pain-point and highlight labelling never validated | Unverified | Open |
-| B-3 | Labelling stability across runs never tested | Unverified | Open |
+| B-3 | Labelling stability across runs never tested | Verified | Mostly stable, not deterministic |
 | C-1 | Committed summary disagrees with committed data | Defect | Fix recommended |
 | C-2 | `analyze.py` cannot run against the committed data | Defect | Fix recommended |
 | C-3 | `normalize_pain()` is defined but never called | Defect | Fix recommended |
 | C-4 | 綠藤 data is committed but not analysed | Defect | Fix recommended |
 | C-5 | Input paths are module-level constants edited by hand | Design limitation | Accepted, not fixed |
-| D-1 | `data/raw/` and `validation_set.csv` are referenced but absent | Documentation | Open |
+| C-6 | Labelling model decommissioned by Groq | Defect (external) | Fixed |
+| D-1 | `data/raw/` and `labeled_reviews.csv` are referenced but absent | Documentation | Open |
 
 ---
 
@@ -29,6 +30,7 @@ A repository-wide search for `gsk_`, `sk-`, `api_key=` string literals, and `tok
 hardcoded credential.
 
 **Check.** `grep -rniE "api[_-]?key *= *[\"']" --include="*.py" .`
+
 
 ---
 
@@ -46,17 +48,26 @@ before the data is written, so it never reaches `data/labeled/`.
 
 ### B-1　Sentiment agreement with human labels is unknown
 
-**Symptom.** `groq_validate.py` is the quality gate for the entire pipeline, and its result is
-not recorded anywhere.
+**Verified: 64–67%, below the 80% threshold.**
 
-**Cause.** The script reads `data/labeled/validation_set.csv`, which is not committed. It prints
-accuracy to stdout and writes nothing to disk.
+Ran against the 33-row human-labelled validation set (`data/labeled/validation_set.csv`, now
+committed) using `openai/gpt-oss-120b` — see C-6. The model actually used for the original
+500-row labelling, `llama-3.3-70b-versatile`, was decommissioned by Groq on 2026-08-16 and can no
+longer be queried, so it cannot be re-validated. This is raw model output with no human
+correction loop, and is therefore not comparable to the "residual error rate: zero" figure in
+`docs/juvaly_report.pdf`, which was reached only after iterative manual review of the original
+labelling run.
 
-**Impact.** The 80% threshold described in the script's docstring cannot be shown to have been
-met. Every downstream figure rests on an unverifiable claim.
+Two runs: 64% (21/33) and 67% (22/33). Errors cluster on 中性 (neutral) — most often confused
+with 非評論 (not-a-review) or 正面 (positive). Only one negative-label miss across both runs, and
+it moved to 中性 rather than 正面; no case flipped between the two poles.
 
-**Fix direction.** Commit the validation set and have the script write its result to a file
-rather than printing it.
+See `outputs/validation_result.json` and `outputs/validation_result_run1.json`.
+
+
+**Fix direction.** None outstanding for measurement. Whether 64–67% is acceptable for this
+project's purposes, and whether the codebook or prompt should be revised to reduce neutral
+confusion, is an open decision, not a defect.
 
 ---
 
@@ -76,12 +87,15 @@ evidence.
 
 ### B-3　Labelling stability across runs never tested
 
-**Symptom.** Temperature is 0 and the response format is JSON, which should make output stable.
-No second run was performed to confirm it.
+**Verified: mostly stable, not fully deterministic.**
 
-**Assessment.** Low risk, but unmeasured. A ten-row repeat would settle it.
+Same 33 rows scored twice with `temperature=0`, using `openai/gpt-oss-120b`. 30/33 predictions
+(91%) identical across runs; 3 rows flipped (2 became correct, 1 became wrong), moving overall
+accuracy from 64% to 67%. `temperature=0` on Groq does not guarantee identical output between
+calls.
 
 ---
+
 
 ### C-1　Committed summary disagrees with committed data
 
@@ -116,6 +130,7 @@ processed.
 
 **Fix.** Point the key at the committed filename.
 
+
 ---
 
 ### C-3　`normalize_pain()` is defined but never called
@@ -134,45 +149,4 @@ ranked count alongside the sentiment summary.
 
 ---
 
-### C-4　綠藤 data is committed but not analysed
-
-**Symptom.** `data/labeled/綠藤_110_labeled.csv` holds 110 labelled reviews, 96 of them valid.
-The brand appears in no output.
-
-**Cause.** It is absent from the `FILES` dictionary in `analyze.py`.
-
-**Impact.** The largest competitor dataset after DR.WU and Inna Organic is excluded from every
-comparison.
-
-**Fix.** Add the entry.
-
----
-
-### C-5　Input paths are module-level constants edited by hand
-
-> Accepted, not fixed. The pipeline ran six times in one session and the cost of a CLI was not
-> justified at that scale.
-
-**Symptom.** `crawler_brand.py` has `BRAND_ID` and `BRAND_NAME` at the top; `clean_brand.py` and
-`groq_label_batch.py` have `INPUT`/`OUTPUT` constants with the literal placeholder `BRAND` and a
-comment saying to edit them.
-
-**Consequence.** Running a stage without editing every constant writes over the previous brand's
-output under the previous brand's filename. Nothing detects this, and C-1 is consistent with it
-having happened.
-
-**Fix direction.** Take the brand as a command-line argument and derive all paths from it.
-
----
-
-### D-1　`data/raw/` and `validation_set.csv` are referenced but absent
-
-**Symptom.** Three paths are read by committed code and do not exist: `data/raw/` (crawler output,
-cleaner input), `data/labeled/validation_set.csv` (validation gate), and
-`data/labeled/labeled_reviews.csv` (analysis input for Juvaly).
-
-**Impact.** The pipeline cannot be run end to end from a fresh clone. Stages four through seven
-have no input.
-
-**Fix.** Either commit the missing files or state in the README which stages are reproducible and
-which are not. The README currently does the latter.
+### C-4　綠藤 data is committed but not
