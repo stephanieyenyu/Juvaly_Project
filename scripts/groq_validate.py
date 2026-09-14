@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """驗證關卡：用人工標註當考題，測 LLM 情感標註準確率。達 80% 才放心大規模標註。"""
-import os, time
+import os, time, json
 import pandas as pd
 from groq import Groq
 from dotenv import load_dotenv
@@ -16,8 +16,26 @@ if __name__ == "__main__":
         try: llm = label_one(row["content"]).get("sentiment","")
         except Exception: llm = "錯誤"
         if llm == row["sentiment"]: correct += 1
-        else: mismatches.append((row["sentiment"], llm, str(row["content"])[:35]))
+        else: mismatches.append({
+            "orig_post_id": int(row["orig_post_id"]),
+            "human": row["sentiment"], "llm": llm,
+            "excerpt": str(row["content"])[:35]
+        })
         time.sleep(0.3)
-    print(f"情感準確率：{correct/len(df):.0%}（{correct}/{len(df)}）")
+
+    accuracy = correct / len(df)
+    result = {
+        "run_at": pd.Timestamp.now().isoformat(),
+        "n": len(df), "correct": correct,
+        "sentiment_accuracy": round(accuracy, 4),
+        "mismatches": mismatches,
+    }
+    os.makedirs("../outputs", exist_ok=True)
+    with open("../outputs/validation_result.json", "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+
+    print(f"情感準確率：{accuracy:.0%}（{correct}/{len(df)}）")
     print("不一致案例：")
-    for h,l,c in mismatches: print(f"  人工:{h} | LLM:{l} | {c}")
+    for m in mismatches:
+        print(f"  人工:{m['human']} | LLM:{m['llm']} | {m['excerpt']}")
+    print(f"\n結果已寫入 ../outputs/validation_result.json")
