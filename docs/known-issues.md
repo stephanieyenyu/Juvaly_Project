@@ -31,7 +31,6 @@ hardcoded credential.
 
 **Check.** `grep -rniE "api[_-]?key *= *[\"']" --include="*.py" .`
 
-
 ---
 
 ### A-2　No reviewer identifiers in the labelled data
@@ -64,7 +63,6 @@ it moved to 中性 rather than 正面; no case flipped between the two poles.
 
 See `outputs/validation_result.json` and `outputs/validation_result_run1.json`.
 
-
 **Fix direction.** None outstanding for measurement. Whether 64–67% is acceptable for this
 project's purposes, and whether the codebook or prompt should be revised to reduce neutral
 confusion, is an open decision, not a defect.
@@ -95,7 +93,6 @@ accuracy from 64% to 67%. `temperature=0` on Groq does not guarantee identical o
 calls.
 
 ---
-
 
 ### C-1　Committed summary disagrees with committed data
 
@@ -130,7 +127,6 @@ processed.
 
 **Fix.** Point the key at the committed filename.
 
-
 ---
 
 ### C-3　`normalize_pain()` is defined but never called
@@ -149,4 +145,68 @@ ranked count alongside the sentiment summary.
 
 ---
 
-### C-4　綠藤 data is committed but not
+### C-4　綠藤 data is committed but not analysed
+
+**Symptom.** `data/labeled/綠藤_110_labeled.csv` holds 110 labelled reviews, 96 of them valid.
+The brand appears in no output.
+
+**Cause.** It is absent from the `FILES` dictionary in `analyze.py`.
+
+**Impact.** The largest competitor dataset after DR.WU and Inna Organic is excluded from every
+comparison.
+
+**Fix.** Add the entry.
+
+---
+
+### C-5　Input paths are module-level constants edited by hand
+
+> Accepted, not fixed. The pipeline ran six times in one session and the cost of a CLI was not
+> justified at that scale.
+
+**Symptom.** `crawler_brand.py` has `BRAND_ID` and `BRAND_NAME` at the top; `clean_brand.py` and
+`groq_label_batch.py` have `INPUT`/`OUTPUT` constants with the literal placeholder `BRAND` and a
+comment saying to edit them.
+
+**Consequence.** Running a stage without editing every constant writes over the previous brand's
+output under the previous brand's filename. Nothing detects this, and C-1 is consistent with it
+having happened.
+
+**Fix direction.** Take the brand as a command-line argument and derive all paths from it.
+
+---
+
+### C-6　Labelling model decommissioned by Groq
+
+**Fixed.**
+
+**Symptom.** `groq_label_batch.py` and, by extension, `groq_validate.py` (which imports its
+`label_one()`) began returning `404 model_not_found` on every call.
+
+**Cause.** `llama-3.3-70b-versatile` — the model that produced every committed
+`data/labeled/*.csv` file — was decommissioned by Groq on 2026-08-16.
+
+**Fix.** `MODEL` in `groq_label_batch.py` migrated to `openai/gpt-oss-120b`, one of Groq's two
+recommended replacements. Confirmed working; see B-1.
+
+**Consequence that is not fixed and cannot be.** The committed labelled data itself is
+unaffected — it was produced while the old model was live, and does not need to be redone. But it
+can never be re-validated against the model that actually produced it. B-1 and B-3 measure the
+replacement model, not the original — this is a permanent gap, not a temporary one. Any future
+re-labelling (new brands, new reviews) will run on the replacement model, which performs
+differently (see B-1) and does not clear this project's own 80% bar out of the box.
+
+---
+
+### D-1　`data/raw/` and `labeled_reviews.csv` are referenced but absent
+
+**Symptom.** Two paths are read by committed code and do not exist: `data/raw/` (crawler output,
+cleaner input) and `data/labeled/labeled_reviews.csv` (analysis input for Juvaly, see C-2).
+`data/labeled/validation_set.csv` was previously in this list; it is now committed — see B-1.
+
+**Impact.** The pipeline cannot be run end to end from a fresh clone. The crawl-through-clean
+stages and the Juvaly row of `analyze.py` have no input.
+
+**Fix.** Either commit `data/raw/` or state in the README which stages are reproducible and which
+are not. The README currently does the latter. `labeled_reviews.csv` is resolved by C-2, not by
+committing a new file.
