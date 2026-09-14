@@ -36,8 +36,9 @@ this class — 22.2% of everything scraped.
 
 **Gates the batch run on measured agreement.** `groq_validate.py` runs the same labelling
 function over a human-labelled set and prints per-case disagreements. The intended threshold was
-80% before committing to the full run. The validation set itself is not in this repository, so
-the figure that gate produced is not recoverable.
+80% before committing to the full run. Two runs against the committed validation set scored 64%
+and 67%, using a replacement model — see [Test Setup and Success Criterion](#test-setup-and-success-criterion).
+The threshold was not met.
 
 **Shares one codebook between validation and production.** `_codebook.py` is imported by both
 `groq_validate.py` and `groq_label_batch.py`. The standard that was measured is therefore the
@@ -79,13 +80,19 @@ Developed 2026.
 
 ## Test Setup and Success Criterion
 
-Labelling ran against `llama-3.3-70b-versatile` through the Groq API at temperature 0 with a
-JSON response format, so repeated runs over the same text should agree.
+The original 500-row labelling ran against `llama-3.3-70b-versatile` through the Groq API at
+temperature 0 with a JSON response format. That model was decommissioned by Groq on 2026-08-16
+(see [`docs/known-issues.md`](docs/known-issues.md) C-6) and cannot be queried again — the
+committed labelled data is unaffected, but it can never be re-validated against the model that
+actually produced it.
 
 The success criterion was agreement with human labels on a held-out set, at 80% or better on
-sentiment before the batch run proceeded. **This criterion cannot be evaluated from what is
-committed.** `data/labeled/validation_set.csv` is absent, and no accuracy figure is recorded
-anywhere in the repository.
+sentiment before the batch run proceeded. **Evaluated, with a caveat.** Two runs against the
+33-row validation set with `openai/gpt-oss-120b`, the replacement model, scored 64% and 67% —
+below the threshold. This measures the replacement model's raw, uncorrected performance, not the
+originally-delivered labelling, which was corrected through manual review before delivery (see
+`docs/juvaly_report.pdf`). Errors cluster on neutral-sentiment reviews being confused with
+non-review or positive; see C-1 in known-issues for the full breakdown.
 
 Pain points and highlights were never validated against human labels at all. Only sentiment was.
 
@@ -100,11 +107,11 @@ Pain points and highlights were never validated against human labels at all. Onl
 | Classed 錯誤 | 0 | Observed |
 | Valid reviews after excluding 非評論 | 389 | Derived |
 | Brands | 6 | Test parameter |
-| Sentiment agreement with human labels | not recorded | Validation set absent |
+| Sentiment agreement with human labels | 64–67% (two runs) | Measured, below 80% threshold, replacement model |
 | Pain-point labelling accuracy | not measured | Never validated |
 | Highlight labelling accuracy | not measured | Never validated |
 | Reviews discarded during cleaning | not recorded | Raw data absent |
-| Inter-run labelling stability | not measured | Single run only |
+| Inter-run labelling stability | 91% (30/33) identical | Measured, two runs |
 
 Three qualifications govern how the table should be read.
 
@@ -144,20 +151,19 @@ product category, and establish whether a language model applies it consistently
 There is no service and no deployment target. Seven scripts run in sequence, each reading the
 previous one's output from disk.
 
-```
-crawler_brand.py     @cosme brand page, paged, 3s between requests
-       │             503 -> sleep 10s x attempt, up to 4 attempts
-       ▼
-clean_reviews.py     drop official copy, drop under 100 chars, drop duplicates
-clean_brand.py       strip the author block, drop under 50 chars, renumber
-       ▼
-groq_validate.py     label a human-labelled set, print disagreements
-       │             gate: proceed only above 80% sentiment agreement
-       ▼
-groq_label_batch.py  label every row, checkpoint every 10, resume on 錯誤
-       ▼
-analyze.py           aggregate across brands, write summary and figure
-```
+crawler_brand.py @cosme brand page, paged, 3s between requests
+│ 503 -> sleep 10s x attempt, up to 4 attempts
+▼
+clean_reviews.py drop official copy, drop under 100 chars, drop duplicates
+clean_brand.py strip the author block, drop under 50 chars, renumber
+▼
+groq_validate.py label a human-labelled set, print disagreements
+│ gate: proceed only above 80% sentiment agreement
+▼
+groq_label_batch.py label every row, checkpoint every 10, resume on 錯誤
+▼
+analyze.py aggregate across brands, write summary and figure
+
 
 The split exists because each stage is slow and fails differently: scraping is rate-limited by
 the site, labelling is rate-limited by the API, and both take long enough that restarting from
@@ -166,7 +172,8 @@ resumable.
 
 The accepted cost is that nothing enforces stage order or input freshness. A stale intermediate
 file is read exactly like a fresh one, which is how the committed summary came to disagree with
-the committed data.
+the committed data, and how a stale validation result was committed once before being replaced
+with a real one.
 
 ---
 
@@ -190,7 +197,8 @@ set, prints every disagreement with the human label, the model label, and the fi
 of the text, and the batch proceeds only if agreement clears 80%.
 
 The accepted cost is that the validation set had to be labelled by hand, and that only sentiment
-was checked. Pain points and highlights went to production unvalidated.
+was checked. Pain points and highlights went to production unvalidated. When this gate was
+finally run, it did not clear 80% — see Test Setup and Success Criterion.
 
 ### The codebook states the traps, not just the categories
 
@@ -233,12 +241,14 @@ Sentiment distribution over the committed data, computed with `pandas`:
 reports 118 valid for DR.WU against 123 here, 44 for menomeno against 49, and 33 for Juvaly
 against 9. Two rows, Inna Organic and nomel, do agree. 綠藤 is absent from the summary entirely
 although its data is committed. The summary was produced from a different snapshot, and that
-snapshot is not in this repository.
+snapshot is not in this repository. See known-issues C-1 through C-4.
 
 **Negative labels are rare everywhere.** Nineteen negative labels across 389 valid reviews is
-4.9%. Either @cosme reviewers rarely post negative reviews, or the codebook's negative definition
-is too narrow, or the model under-applies it. Nothing here distinguishes the three, and the
-validation set that could have is absent.
+4.9%. The validation run offers a partial explanation rather than a full one: of 33 validation
+rows, only one was human-labelled 負面, and the model missed it — assigning 中性, not 正面. A
+single case cannot establish whether the codebook's negative definition is too narrow or the
+model under-applies it, but it does confirm the negative class is too sparse in a 33-row set to
+say much about itself, which is exactly the problem raised in Open Problems below.
 
 **The pain-point analysis did not run.** `analyze.py` defines `normalize_pain()` to collapse the
 free-text pain-point column into six buckets, but `main()` never calls it. The pain-point ranking
@@ -256,9 +266,11 @@ population.
 brands. Any conclusion drawn from the summary is therefore attributable either to the analysis or
 to the snapshot difference, and this repository cannot separate them.
 
-**Instrumentation.** Labelling accuracy was checked once, on sentiment only, against a set that
-is not committed. Pain points and highlights — the two columns the client actually asked for —
-were never checked against a human standard at all.
+**Instrumentation.** Sentiment labelling accuracy was checked against a committed validation set
+and did not clear this project's own 80% bar (64–67%, see Evaluation). It was also checked against
+a replacement model, not the one that produced the committed data, because the original was
+decommissioned mid-project. Pain points and highlights — the two columns the client actually
+asked for — were never checked against a human standard at all.
 
 **External validity.** Six brands from one category on one platform in one language. The codebook
 names cosmetics-specific categories and cannot be applied elsewhere without rewriting.
@@ -267,15 +279,21 @@ names cosmetics-specific categories and cannot be applied elsewhere without rewr
 comment saying to edit it per brand. Running the pipeline on a second brand without editing every
 constant produces output under the previous brand's filename, and nothing detects this.
 
+**Vendor dependency.** The labelling model was retired by its provider partway through this
+project, with roughly two months' notice. The committed data survives that (it was produced
+before decommission), but the validation and any future labelling now runs on a different model
+with measured different behaviour, and no mechanism here would catch it happening again.
+
 ---
 
 ## Open Problems
 
 **How large does a validation set need to be for a codebook of this shape?** Sentiment has four
-classes and one of them, 負面, appears in 4.9% of the data. A validation set sampled at random
-would contain almost no negative cases, so agreement measured over it would say very little about
-the class most likely to be wrong. Stratifying the validation set requires knowing the
-distribution first, which requires labelling first.
+classes and one of them, 負面, appears in 4.9% of the data. A 33-row validation set drawn without
+stratifying on sentiment contained exactly one 負面 case — the model missed it. That is not
+enough to say anything about the negative class specifically, which is the class a brand most
+needs labelled correctly. Stratifying the validation set requires knowing the distribution first,
+which requires labelling first.
 
 **Can multi-label columns be validated the same way as single-label ones?** Sentiment agreement
 is a straightforward match. Pain points are a semicolon-separated subset of fifteen categories,
@@ -286,6 +304,11 @@ This is why those two columns went unvalidated rather than validated badly.
 Whether that reflects the brands' marketing behaviour or the model's inconsistency determines
 whether cross-brand comparison is valid at all, and the data here cannot answer it.
 
+**What happens when the underlying model changes?** It already did, mid-project, with no
+mechanism in this repository to detect it beyond every API call failing at once. A pipeline that
+depends on a named third-party model with no version pin, no pre-flight check, and no
+configurability has an unaddressed single point of failure.
+
 The pipeline ran on one machine against free-tier API limits, which set the two-second inter-row
 delay and the 500-row total. A larger corpus would change what can be asked, not just how
 precisely it can be answered.
@@ -294,30 +317,32 @@ precisely it can be answered.
 
 ## Repository Layout
 
-```
 README.md
-app.py                          Streamlit interface over the labelled data
+app.py Streamlit interface over the labelled data
 requirements.txt
-.env.example                    GROQ_API_KEY only
+requirements_scripts.txt scraping, cleaning, and labelling script dependencies
+.env.example GROQ_API_KEY only
 scripts/
-  crawler_brand.py              @cosme paged scrape, 503 backoff, 3s delay
-  clean_reviews.py              shared cleaner: official copy, length, duplicates
-  clean_brand.py                strips author block, 50-char floor, renumbers
-  _codebook.py                  the labelling standard, imported by two callers
-  groq_validate.py              agreement check, prints per-case disagreements
-  groq_label_batch.py           batch labelling, 10-row checkpoint, 錯誤 resume
-  analyze.py                    cross-brand aggregation and figure
-data/labeled/                   6 CSVs, 500 rows, 8 columns
+crawler_brand.py @cosme paged scrape, 503 backoff, 3s delay
+clean_reviews.py shared cleaner: official copy, length, duplicates
+clean_brand.py strips author block, 50-char floor, renumbers
+_codebook.py the labelling standard, imported by two callers
+groq_validate.py agreement check, writes result to outputs/, not just stdout
+groq_label_batch.py batch labelling, 10-row checkpoint, 錯誤 resume
+analyze.py cross-brand aggregation and figure
+data/labeled/ 6 brand CSVs (500 rows, 8 columns) + validation_set.csv (33 rows, 6 columns)
 outputs/
-  final_competitor_analysis.png produced from an earlier snapshot
-  competitor_summary_final.csv  disagrees with data/labeled for 3 of 6 brands
+final_competitor_analysis.png produced from an earlier snapshot
+competitor_summary_final.csv disagrees with data/labeled for 3 of 6 brands
+validation_result.json latest B-1/B-3 run
+validation_result_run1.json first of two runs, kept for stability comparison
 docs/
-  architecture.md
-  metrics.md
-  known-issues.md
-  Juvaly_Executive_Summary.docx client deliverable
-  menomeno_jandan.xlsx          working file
-```
+architecture.md
+metrics.md
+known-issues.md
+Juvaly_Executive_Summary.docx client deliverable
+menomeno_jandan.xlsx working file
+
 
 ---
 
@@ -325,7 +350,8 @@ docs/
 
 **Scraping**  Python · requests · BeautifulSoup
 
-**Labelling**  Groq API · `llama-3.3-70b-versatile` · temperature 0 · JSON response format
+**Labelling**  Groq API · originally `llama-3.3-70b-versatile`, decommissioned 2026-08-16 ·
+now `openai/gpt-oss-120b` · temperature 0 · JSON response format
 
 **Analysis**  pandas · matplotlib
 
@@ -335,22 +361,24 @@ docs/
 
 ## Running Locally
 
-```
 pip install -r requirements.txt
-cp .env.example .env          # then set GROQ_API_KEY
+pip install -r requirements_scripts.txt
+cp .env.example .env # then set GROQ_API_KEY
 cd scripts
-python crawler_brand.py       # edit BRAND_ID and BRAND_NAME first
-python groq_label_batch.py    # edit INPUT_FILE and OUTPUT_FILE first
+python crawler_brand.py # edit BRAND_ID and BRAND_NAME first
+python groq_validate.py # gate: prints and writes ../outputs/validation_result.json
+python groq_label_batch.py # edit INPUT_FILE and OUTPUT_FILE first
 python analyze.py
 streamlit run ../app.py
-```
 
-Three things look like they will work and will not. `data/raw/` does not exist in this
-repository, so the crawler writes to a path that must be created first and the cleaning scripts
-have no input until it has run. `groq_validate.py` reads `data/labeled/validation_set.csv`,
-which is absent, so the validation gate cannot be run at all. `analyze.py` reads
-`data/labeled/labeled_reviews.csv` for the Juvaly row, which is also absent, so the script fails
-on its first file rather than producing a partial result.
+
+Two things look like they will work and will not. `data/raw/` does not exist in this repository,
+so the crawler writes to a path that must be created first and the cleaning scripts have no input
+until it has run. `analyze.py` reads `data/labeled/labeled_reviews.csv` for the Juvaly row, which
+is absent, so the script fails on its first file rather than producing a partial result — see C-2.
+
+`groq_validate.py` now runs end to end; its validation set is committed and its result is written
+to `outputs/validation_result.json` rather than only printed.
 
 ---
 
