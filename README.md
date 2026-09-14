@@ -31,7 +31,6 @@ image is stale. See [`docs/known-issues.md`](docs/known-issues.md) C-1.*
 
 ## What It Does
 
-
 **Treats marketing copy as a labelling class rather than filtering it upstream.** The codebook
 defines 非評論 (not a review) as a fourth sentiment value, so text that turns out to be official
 copy is recorded as such instead of silently dropped. Across 500 labelled rows, 111 fall into
@@ -63,7 +62,6 @@ data carries 錯誤, so the retry path either never fired or always recovered.
 
 | Component | Covers |
 |---|---|
-
 | `scripts/crawler_brand.py` | Paged scrape of one @cosme brand page, with 503 backoff |
 | `scripts/clean_reviews.py` | Shared cleaner: official copy, minimum length, duplicates |
 | `scripts/clean_brand.py` | Strips the author block that prefixes brand-page review text |
@@ -96,7 +94,6 @@ sentiment before the batch run proceeded. **Evaluated, with a caveat.** Two runs
 33-row validation set with `openai/gpt-oss-120b`, the replacement model, scored 72.7% and 69.7% —
 below the threshold. This measures the replacement model's raw, uncorrected performance, not the
 originally-delivered labelling, which was corrected through manual review before delivery (see
-
 `docs/juvaly_report.pdf`). Errors cluster on neutral-sentiment reviews being confused with
 non-review or positive; see C-1 in known-issues for the full breakdown.
 
@@ -129,7 +126,6 @@ exist on that platform for that brand, not the opinion of its customers.
 rate computed over nine rows moves by 11 points per row, so the client's own column in the
 comparison is not on the same footing as the competitor columns.
 
-
 **The 非評論 rate is a property of the brand page, not the brand.** Inna Organic's 36.2% is the
 highest in the set, which says its brand page carries proportionally more copied marketing text.
 It says nothing about the product.
@@ -157,3 +153,259 @@ product category, and establish whether a language model applies it consistently
 
 There is no service and no deployment target. Seven scripts run in sequence, each reading the
 previous one's output from disk.
+
+crawler_brand.py @cosme brand page, paged, 3s between requests
+│ 503 -> sleep 10s x attempt, up to 4 attempts
+▼
+clean_reviews.py drop official copy, drop under 100 chars, drop duplicates
+clean_brand.py strip the author block, drop under 50 chars, renumber
+▼
+groq_validate.py label a human-labelled set, print disagreements, write result to outputs/
+│ gate: proceed only above 80% sentiment agreement
+▼
+groq_label_batch.py label every row, checkpoint every 10, resume on 錯誤
+▼
+analyze.py aggregate across brands, write summary and pain-point ranking
+
+
+The split exists because each stage is slow and fails differently: scraping is rate-limited by
+the site, labelling is rate-limited by the API, and both take long enough that restarting from
+the beginning is expensive. Writing to disk between stages makes each one independently
+resumable.
+
+The accepted cost is that nothing enforces stage order or input freshness. A stale intermediate
+file is read exactly like a fresh one, which is how the committed summary once disagreed with the
+committed data (`known-issues.md` C-1, now fixed) and how a stale validation result was committed
+once before being replaced with a real one.
+
+---
+
+## Design
+
+### One codebook, imported rather than copied
+
+The validation script and the batch labeller need the same labelling standard. Writing the
+prompt into both would allow them to drift, and a drift would be silent: validation would measure
+one standard while production applied another. `_codebook.py` holds the prompt as a single
+constant and both scripts import it.
+
+The accepted cost is that changing the codebook invalidates any previous validation result. The
+repository does not record which codebook version any measurement was taken under.
+
+### Validation precedes the batch, because the batch is the expensive part
+
+Labelling 500 rows at two seconds apart is roughly 17 minutes of API time, and a labelling error
+found afterwards means relabelling all of it. `groq_validate.py` runs first over a human-labelled
+set, prints every disagreement with the human label, the model label, and the first 35 characters
+of the text, and the batch proceeds only if agreement clears 80%.
+
+The accepted cost is that the validation set had to be labelled by hand, and that only sentiment
+was checked. Pain points and highlights went to production unvalidated. When this gate was
+finally run, it did not clear 80% — see Test Setup and Success Criterion.
+
+### The codebook states the traps, not just the categories
+
+A category list alone produces predictable errors. "不黏膩" contains 黏膩 and gets labelled as a
+texture complaint. Polite closing remarks get read as praise. Agreement with a brand's
+sustainability stance gets read as product satisfaction. Each of these became an explicit rule
+in the codebook, written as a prohibition rather than a definition.
+
+The accepted cost is that the codebook is specific to cosmetics reviews in Traditional Chinese
+and does not transfer.
+
+### Marketing copy is labelled, not filtered
+
+`clean_reviews.py` removes text that begins with 商品說明 or matches two or more advertising
+signals, but the filter is deliberately conservative and the codebook keeps 非評論 as a label the
+model can assign. Anything the cleaner missed is therefore counted rather than quietly folded
+into the sentiment denominator.
+
+The accepted cost is one extra class the model can get wrong, and a 非評論 rate that varies from
+12.7% to 36.2% across brands with no way to tell mislabelling from genuine variation in how each
+brand page is written.
+
+---
+
+## Evaluation
+
+Sentiment distribution over the committed data, computed with `pandas`, and matching
+`outputs/competitor_summary_final.csv` exactly:
+
+| Brand | Total | 非評論 | Valid | 正面 | 中性 | 負面 | Positive rate |
+|---|---|---|---|---|---|---|---|
+| DR.WU | 147 | 24 | 123 | 81 | 39 | 3 | 65.9% |
+| Inna Organic | 141 | 51 | 90 | 62 | 23 | 5 | 68.9% |
+| 綠藤 | 110 | 14 | 96 | 61 | 29 | 6 | 63.5% |
+| menomeno + 簡單 | 58 | 9 | 49 | 18 | 27 | 4 | 36.7% |
+| nomel | 31 | 9 | 22 | 10 | 11 | 1 | 45.5% |
+| Juvaly | 13 | 4 | 9 | 9 | 0 | 0 | 100% |
+| **All** | **500** | **111** | **389** | **241** | **129** | **19** | **62.0%** |
+
+Cross-brand pain-point ranking, from `outputs/pain_point_ranking.csv`:
+
+| Rank | Pain point | Mentions | Brands affected |
+|---|---|---|---|
+| 1 | 質地黏膩 | 37 | 5 of 6 — every brand except Juvaly |
+| 2 | 效果無感 | 14 | 4 |
+| 3 | 吸收慢 | 13 | 5 |
+| 4 | 價格偏高 | 12 | 5, including Juvaly (1 mention) |
+| 5 | 包裝設計 | 11 | 4 |
+| 6 | 香味問題 | 9 | 4 |
+
+**Juvaly's only pain-point mention across nine valid reviews is 價格偏高.** It is the sole brand
+with zero mentions of 質地黏膩, the market's largest shared complaint.
+
+**These numbers do not match `docs/juvaly_report.pdf`.** That report's pain-point table (28 / 8 /
+8 / 8 / 5 / 5) was tallied by hand under a different, undocumented matching rule before this code
+existed. Only the table above is reproducible from committed code — see
+[`docs/known-issues.md`](docs/known-issues.md) C-3.
+
+**Negative labels are rare everywhere.** Nineteen negative labels across 389 valid reviews is
+4.9%. The validation run offers a partial explanation rather than a full one: of 33 validation
+rows, only one was human-labelled 負面, and the model missed it in both runs — assigning 中性, not
+正面. A single case cannot establish whether the codebook's negative definition is too narrow or
+the model under-applies it, but it does confirm the negative class is too sparse in a 33-row set
+to say much about itself, which is exactly the problem raised in Open Problems below.
+
+---
+
+## Threats to Validity
+
+**Construct validity.** Positive rate is measured over reviews that exist on one platform. It is
+being used as a proxy for brand sentiment, which is a different quantity with a different
+population.
+
+**Internal validity.** The committed summary and the committed data reconciled as of 2026-09-14
+(see `known-issues.md` C-1 through C-4). Before that, they disagreed for three of six brands and
+omitted 綠藤 entirely — any conclusion drawn from the analysis before that date should be treated
+as unreliable.
+
+**Instrumentation.** Sentiment labelling accuracy was checked against a committed validation set
+and did not clear this project's own 80% bar (69.7–72.7%, see Evaluation). It was also checked
+against a replacement model, not the one that produced the committed data, because the original
+was decommissioned mid-project. Pain points and highlights — the two columns the client actually
+asked for — were never checked against a human standard at all.
+
+**External validity.** Six brands from one category on one platform in one language. The codebook
+names cosmetics-specific categories and cannot be applied elsewhere without rewriting.
+
+**Configuration.** Every script has its input path hardcoded as a module-level constant with a
+comment saying to edit it per brand. Running the pipeline on a second brand without editing every
+constant produces output under the previous brand's filename, and nothing detects this — this is
+how the C-1 discrepancy happened in the first place.
+
+**Vendor dependency.** The labelling model was retired by its provider partway through this
+project, with roughly two months' notice. The committed data survives that (it was produced
+before decommission), but the validation and any future labelling now runs on a different model
+with measured different behaviour, and no mechanism here would catch it happening again.
+
+---
+
+## Open Problems
+
+**How large does a validation set need to be for a codebook of this shape?** Sentiment has four
+classes and one of them, 負面, appears in 4.9% of the data. A 33-row validation set drawn without
+stratifying on sentiment contained exactly one 負面 case — the model missed it in both runs. That
+is not enough to say anything about the negative class specifically, which is the class a brand
+most needs labelled correctly. Stratifying the validation set requires knowing the distribution
+first, which requires labelling first.
+
+**Can multi-label columns be validated the same way as single-label ones?** Sentiment agreement
+is a straightforward match. Pain points are a semicolon-separated subset of fifteen categories,
+so two labels can be partly right, and no threshold was ever defined for what partly right means.
+This is why those two columns went unvalidated rather than validated badly.
+
+**What is the denominator?** The 非評論 rate varies by a factor of nearly three across brands.
+Whether that reflects the brands' marketing behaviour or the model's inconsistency determines
+whether cross-brand comparison is valid at all, and the data here cannot answer it.
+
+**What happens when the underlying model changes?** It already did, mid-project, with no
+mechanism in this repository to detect it beyond every API call failing at once. A pipeline that
+depends on a named third-party model with no version pin, no pre-flight check, and no
+configurability has an unaddressed single point of failure.
+
+**When two documents disagree, which one is authoritative?** `docs/juvaly_report.pdf` and
+`outputs/pain_point_ranking.csv` now give different pain-point counts. Neither has been formally
+superseded. A repository that produces a number should probably say, somewhere, which number wins
+when an older deliverable and a newer script disagree — this one does not yet.
+
+The pipeline ran on one machine against free-tier API limits, which set the two-second inter-row
+delay and the 500-row total. A larger corpus would change what can be asked, not just how
+precisely it can be answered.
+
+---
+
+## Repository Layout
+
+README.md
+app.py Streamlit interface over the labelled data
+requirements.txt
+requirements_scripts.txt scraping, cleaning, and labelling script dependencies
+.env.example GROQ_API_KEY only
+scripts/
+crawler_brand.py @cosme paged scrape, 503 backoff, 3s delay
+clean_reviews.py shared cleaner: official copy, length, duplicates
+clean_brand.py strips author block, 50-char floor, renumbers
+_codebook.py the labelling standard, imported by two callers
+groq_validate.py agreement check, writes result to outputs/, not just stdout
+groq_label_batch.py batch labelling, 10-row checkpoint, 錯誤 resume
+analyze.py cross-brand aggregation, sentiment summary, pain-point ranking
+data/labeled/ 6 brand CSVs (500 rows, 8 columns) + validation_set.csv (33 rows, 6 columns)
+outputs/
+final_competitor_analysis.png stale — produced from an earlier snapshot, not regenerated
+competitor_summary_final.csv current — matches data/labeled exactly
+pain_point_ranking.csv current — disagrees with docs/juvaly_report.pdf, see known-issues C-3
+validation_result.json latest B-1/B-3 run (69.7%)
+validation_result_run1.json first of two runs (72.7%), kept for stability comparison
+docs/
+architecture.md
+metrics.md
+known-issues.md
+juvaly_report.pdf client deliverable — pain-point numbers superseded, see C-3
+Juvaly_Executive_Summary.docx client deliverable
+menomeno_jandan.xlsx working file
+
+
+---
+
+## Tech Stack
+
+**Scraping**  Python · requests · BeautifulSoup
+
+**Labelling**  Groq API · originally `llama-3.3-70b-versatile`, decommissioned 2026-08-16 ·
+now `openai/gpt-oss-120b` · temperature 0 · JSON response format
+
+**Analysis**  pandas · matplotlib
+
+**Interface**  Streamlit
+
+---
+
+## Running Locally
+
+pip install -r requirements.txt
+pip install -r requirements_scripts.txt
+cp .env.example .env # then set GROQ_API_KEY
+cd scripts
+python crawler_brand.py # edit BRAND_ID and BRAND_NAME first
+python groq_validate.py # gate: prints and writes ../outputs/validation_result.json
+python groq_label_batch.py # edit INPUT_FILE and OUTPUT_FILE first
+python analyze.py
+streamlit run ../app.py
+
+
+One thing looks like it will work and will not. `data/raw/` does not exist in this repository,
+so the crawler writes to a path that must be created first and the cleaning scripts have no input
+until it has run — see `known-issues.md` D-1.
+
+`groq_validate.py` and `analyze.py` now both run end to end against what is committed.
+
+---
+
+## Author
+
+Stephanie (Yen-Yu) Lin
+Industrial Engineering and Engineering Management, National Tsing Hua University
+
+Built for Juvaly as an independent review-analysis project. Review text is reproduced from
+public @cosme Taiwan brand pages; no reviewer identifiers were collected or stored.
