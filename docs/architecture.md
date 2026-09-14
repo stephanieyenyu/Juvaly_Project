@@ -35,6 +35,9 @@ Writing to disk between stages means a failure in one does not discard the work 
 one, and the expensive stage — labelling — can resume from its own checkpoint rather than from
 the beginning.
 
+Stage 6 (`analyze.py`) had the same failure mode independently — see `known-issues.md` C-1
+through C-4, now fixed.
+
 **The accepted cost is that nothing enforces ordering or freshness.** A stale intermediate file is
 read exactly like a fresh one. The disagreement recorded in `known-issues.md` C-1 is what that
 costs in practice: the committed summary was computed from inputs that are no longer the
