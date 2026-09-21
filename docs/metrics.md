@@ -158,8 +158,9 @@ under-applies it. That single case was missed in both runs (labelled 中性, not
 stratified validation set, sampled to include more negative cases, is needed to say more — see
 known-issues.md's Open Problems.
 
-### Two authoritative documents now disagree on the pain-point ranking
+### Two documents disagree on the pain-point ranking; the reproducible one wins
 
 `docs/juvaly_report.pdf` and `outputs/pain_point_ranking.csv` both claim to rank the market's
 shared complaints, and give different numbers. Only the latter is reproducible from committed
-code. This is not resolved by this pass — it is a new, explicit disagreement raised by fixing C-3.
+code, so it's the one this repository treats as authoritative. `juvaly_report.pdf`'s table stays
+committed as the original client deliverable, not as a competing current figure.

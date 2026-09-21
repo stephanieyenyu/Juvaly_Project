@@ -150,9 +150,10 @@ mention) · 包裝設計 11 · 香味問題 9.
 
 **Consequence that remains.** These numbers do not match the pain-point ranking in
 `docs/juvaly_report.pdf` (28 / 8 / 8 / 8 / 5 / 5), which was tallied by hand under different
-matching rules before this code existed. The report has not been revised to match. The two
-documents now disagree on a figure both present as authoritative, and only one is reproducible
-from committed code.
+matching rules before this code existed. The report has not been revised to match, and it does not
+need to be — it stays as the original client deliverable. This repository's own README and
+metrics.md treat `pain_point_ranking.csv` as the authoritative figure going forward, since it's
+the one a reader can regenerate.
 
 ---
 

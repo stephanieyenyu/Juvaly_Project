@@ -324,9 +324,12 @@ depends on a named third-party model with no version pin, no pre-flight check, a
 configurability has an unaddressed single point of failure.
 
 **When two documents disagree, which one is authoritative?** `docs/juvaly_report.pdf` and
-`outputs/pain_point_ranking.csv` now give different pain-point counts. Neither has been formally
-superseded. A repository that produces a number should probably say, somewhere, which number wins
-when an older deliverable and a newer script disagree — this one does not yet.
+`outputs/pain_point_ranking.csv` give different pain-point counts, tallied under different,
+undocumented rules. Resolved in favour of reproducibility: `pain_point_ranking.csv` is treated as
+authoritative here and throughout this README, because it is the only one of the two a reader can
+regenerate from committed code. `juvaly_report.pdf`'s table is superseded, not deleted — it
+remains the client deliverable as originally sent, just no longer the number this repository
+quotes.
 
 The pipeline ran on one machine against free-tier API limits, which set the two-second inter-row
 delay and the 500-row total. A larger corpus would change what can be asked, not just how
