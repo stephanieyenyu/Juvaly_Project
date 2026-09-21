@@ -5,10 +5,12 @@ import matplotlib.pyplot as plt
 import matplotlib, os
 from matplotlib import font_manager
 
-for fp in ["/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"]:
+for fp in ["/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+           "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"]:
     if os.path.exists(fp):
         font_manager.fontManager.addfont(fp)
         matplotlib.rcParams['font.family'] = font_manager.FontProperties(fname=fp).get_name()
+        break
 matplotlib.rcParams['axes.unicode_minus'] = False
 
 FILES = {
@@ -60,6 +62,37 @@ def main():
     pain_rank.to_csv('../outputs/pain_point_ranking.csv',index=False,encoding='utf-8-sig')
     print()
     print(pain_rank.to_string(index=False))
+
+    plot_summary(summary, pain_rank)
+
+def plot_summary(summary, pain_rank):
+    """六大痛點排行 + 各品牌非評論率／正面率，存成 outputs/final_competitor_analysis.png"""
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+    axes[0].bar(pain_rank['痛點'], pain_rank['出現次數'], color='#d9534f')
+    axes[0].set_title('六大痛點排行：「質地黏膩」最常見')
+    axes[0].set_ylabel('提及次數')
+    for i, v in enumerate(pain_rank['出現次數']):
+        axes[0].text(i, v + 0.4, str(v), ha='center')
+    axes[0].tick_params(axis='x', rotation=20)
+
+    axes[1].bar(summary['品牌'], summary['非評論率%'], color='#f0ad4e')
+    axes[1].set_title('「非評論/邀稿文」佔比：新銳品牌聲量水分高')
+    axes[1].set_ylabel('非評論率 %')
+    for i, v in enumerate(summary['非評論率%']):
+        axes[1].text(i, v + 0.7, f'{v}%', ha='center')
+    axes[1].tick_params(axis='x', rotation=20)
+
+    axes[2].bar(summary['品牌'], summary['正面率%'], color='#5bc0de')
+    axes[2].set_title('真實評論正面率：競品口碑偏平淡')
+    axes[2].set_ylabel('正面率 %（占有效評論）')
+    for i, v in enumerate(summary['正面率%']):
+        axes[2].text(i, v + 0.7, f'{v}%', ha='center')
+    axes[2].tick_params(axis='x', rotation=20)
+
+    plt.tight_layout()
+    plt.savefig('../outputs/final_competitor_analysis.png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
 
 if __name__=="__main__":
     main()

@@ -13,7 +13,7 @@ be defects. B-items are unverified. C-items are defects. D-items are documentati
 | B-1 | Sentiment agreement with human labels is unknown | Verified | Below threshold — 69.7–72.7% |
 | B-2 | Pain-point and highlight labelling never validated | Unverified | Open |
 | B-3 | Labelling stability across runs never tested | Verified | Mostly stable, not deterministic |
-| C-1 | Committed summary disagreed with committed data | Defect | Fixed |
+| C-1 | Committed summary disagreed with committed data; demo image was stale | Defect | Fixed |
 | C-2 | `analyze.py` could not run against the committed data | Defect | Fixed |
 | C-3 | `normalize_pain()` was defined but never called | Defect | Fixed |
 | C-4 | 綠藤 data was committed but not analysed | Defect | Fixed |
@@ -113,9 +113,12 @@ the committed `juvaly_cosme_labeled.csv` (C-2), and 綠藤 was never included (C
 DR.WU / Inna Organic / 綠藤 / menomeno+簡單 / nomel / Juvaly, matching independent recomputation
 in `docs/metrics.md`.
 
-**Not fixed by this.** `outputs/final_competitor_analysis.png` was produced from the old snapshot
-and was not regenerated — `analyze.py` has no plotting code in `main()` to regenerate it from.
-The demo image should still be treated as stale.
+**Also fixed.** `outputs/final_competitor_analysis.png` was produced from the old snapshot and
+`analyze.py` had no plotting code in `main()` to regenerate it. A `plot_summary()` function was
+added, called at the end of `main()`, and the image was regenerated against the current
+`competitor_summary_final.csv` and `pain_point_ranking.csv` — all six brands now appear (the old
+image omitted Juvaly and 綠藤), and the pain-point panel reflects the ranking produced by C-3
+rather than a single category tallied under the old, pre-fix method.
 
 ---
 

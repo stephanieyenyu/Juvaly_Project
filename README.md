@@ -12,8 +12,8 @@ complaint about greasiness. **Knowing whether the labels are any good**, which i
 labelled validation set gates the batch run rather than following it.
 
 What is here is a seven-stage pipeline, a codebook, 500 labelled reviews across six brands, and a
-record of which committed figures can be reproduced from the committed data. As of 2026-09-14,
-all of them can, except one figure — see [Demo](#demo).
+record of which committed figures can be reproduced from the committed data. As of 2026-09-19,
+every committed figure, including the demo image, reproduces from `scripts/analyze.py`.
 
 ---
 
@@ -21,11 +21,10 @@ all of them can, except one figure — see [Demo](#demo).
 
 ![Competitor sentiment and pain-point comparison](outputs/final_competitor_analysis.png)
 
-*Aggregate output: sentiment distribution and pain-point ranking across the six brands. This
-figure was produced from an earlier data snapshot and has not been regenerated —
-`scripts/analyze.py` has no plotting code path to produce it from. The underlying numbers
-(`outputs/competitor_summary_final.csv`, `outputs/pain_point_ranking.csv`) are current; only this
-image is stale. See [`docs/known-issues.md`](docs/known-issues.md) C-1.*
+*Aggregate output: pain-point ranking and per-brand non-review rate and positive rate across all
+six brands. Regenerated from the current `competitor_summary_final.csv` and
+`pain_point_ranking.csv` by `scripts/analyze.py`'s `plot_summary()`. See
+[`docs/known-issues.md`](docs/known-issues.md) C-1.*
 
 ---
 
