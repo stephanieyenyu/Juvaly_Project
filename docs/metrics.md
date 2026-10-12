@@ -18,8 +18,9 @@ a reader reproduce each number, not to accept it.
 | `data/labeled/validation_set.csv` | 33 rows, human-labelled: brand, orig_post_id, sentiment, pain_points, highlights, content |
 | `outputs/competitor_summary_final.csv` | Aggregated counts, regenerated from committed data — see known-issues.md C-1 |
 | `outputs/pain_point_ranking.csv` | Cross-brand pain-point ranking, regenerated from committed data — see known-issues.md C-3 |
-| `outputs/final_competitor_analysis.png` | Figure from an earlier snapshot — not regenerated, see known-issues.md C-1 |
+| `outputs/final_competitor_analysis.png` | Regenerated from the committed data by `analyze.py`'s `plot_summary()` as of 2026-09-19 — see known-issues.md C-1 |
 | `outputs/validation_result.json`, `validation_result_run1.json` | Two runs of the validation gate — see known-issues.md B-1, B-3 |
+| `outputs/validation_result_tags.json` | Offline tag-level check of `pain_points` and `highlights`, every disagreement listed — see known-issues.md B-2 |
 | `data/raw/` | Absent. Pre-cleaning scrape output was not committed |
 
 ---
@@ -34,7 +35,8 @@ sum(len(pd.read_csv(f)) for f in glob.glob('data/labeled/*_labeled.csv'))
 | Figure | Value | Derivation |
 |---|---|---|
 | Labelled reviews | 500 | Sum of `len(read_csv)` over six brand files |
-| Brands | 6 | File count in `data/labeled/` matching `*_labeled.csv` |
+| Brands | 6 reporting units | File count in `data/labeled/` matching `*_labeled.csv` |
+| Distinct brand labels in the data | 7 | `menomeno` and `簡單JANDAN` share one file and are reported as one unit, `menomeno+簡單`; `app.py` lists them separately |
 | Python files | 8 | 7 in `scripts/` plus `app.py` |
 | Sentiment classes | 4 | Enumerated in `_codebook.py` |
 | Pain-point categories | 15 | Enumerated in `_codebook.py`, including 其他 |
@@ -103,8 +105,8 @@ this table is the one that can be rerun.
 |---|---|---|
 | Rows marked 錯誤 | 0 | `value_counts()` across all six brand files |
 | Sentiment agreement with human labels | 69.7–72.7% (two runs) | `outputs/validation_result*.json`; replacement model, see known-issues.md B-1 |
-| Pain-point agreement | not measured | Never validated, see known-issues.md B-2 |
-| Highlight agreement | not measured | Never validated, see known-issues.md B-2 |
+| Pain-point agreement | tag F1 0.143 (P 0.333 · R 0.091) | `scripts/validate_tags.py`, see below and known-issues.md B-2 |
+| Highlight agreement | tag F1 0.442 (P 0.396 · R 0.500) | `scripts/validate_tags.py`, see below and known-issues.md B-2 |
 | Repeat-run stability | 91% (30/33 identical) | Two runs, see known-issues.md B-3 |
 
 **Zero 錯誤 rows in the production data does not mean zero failures.** `label_with_retry()`
@@ -112,6 +114,28 @@ returns `{"sentiment": "錯誤"}` only after five consecutive failures. A row th
 and succeeded on the fifth is indistinguishable from one that succeeded immediately. (One
 transient `錯誤` did appear in a validation run — see B-3 — consistent with this being a live
 risk, not a hypothetical one.)
+
+**The two multi-label columns are scored per tag, not per row.** `validate_tags.py` joins the
+33-row human set to the committed labels on `(brand, orig_post_id)` — all 33 match — and splits
+each cell on `;` or `,` into a set:
+
+```python
+tp = len(H & M); fp = len(M - H); fn = len(H - M)   # summed over all 33 rows
+P = tp / (tp + fp); R = tp / (tp + fn); F1 = 2*P*R / (P+R)
+```
+
+| Column | tp | fp | fn | Precision | Recall | F1 | Exact set match |
+|---|---|---|---|---|---|---|---|
+| `pain_points` | 1 | 2 | 10 | 0.333 | 0.091 | 0.143 | 24/33 — 23 of them both-blank |
+| `highlights` | 19 | 29 | 19 | 0.396 | 0.500 | 0.442 | 8/33 — 4 of them both-blank |
+
+The exact-set-match column is recorded to be discounted, not used. On `pain_points` it reads
+72.7%, which coincidentally matches the first sentiment run, and almost all of it is agreement by
+mutual silence. The tag-level figures are the ones that describe the columns.
+
+This script makes no API call. Both sides of the comparison are committed, so the figures above
+regenerate from a clean clone with no key — unlike the sentiment figures, which require a live
+model and therefore drift with the vendor.
 
 **69.7–72.7% was measured on a different model than the one that produced this data.**
 `llama-3.3-70b-versatile` was decommissioned by Groq on 2026-08-16, mid-project. The figure above

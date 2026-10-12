@@ -15,6 +15,7 @@ the Groq API.
 | 3 Clean (brand page) | `clean_brand.py` | `data/raw/*_multipage.csv` | `data/raw/*_clean.csv` |
 | 4 Validate | `groq_validate.py` | `data/labeled/validation_set.csv` | stdout + `outputs/validation_result.json` |
 | 5 Label | `groq_label_batch.py` | `data/raw/*_clean.csv` | `data/labeled/<brand>_labeled.csv` |
+| 5b Validate tags | `validate_tags.py` | `data/labeled/*.csv` | stdout + `outputs/validation_result_tags.json` |
 | 6 Aggregate | `analyze.py` | `data/labeled/*.csv` | `outputs/competitor_summary_final.csv`, `.png` |
 | 7 Present | `app.py` | `data/labeled/*.csv` | Streamlit UI |
 

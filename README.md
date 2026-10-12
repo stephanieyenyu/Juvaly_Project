@@ -251,6 +251,10 @@ Sentiment distribution over the committed data, computed with `pandas`, and matc
 | Juvaly | 13 | 4 | 9 | 9 | 0 | 0 | 100% |
 | **All** | **500** | **111** | **389** | **241** | **129** | **19** | **62.0%** |
 
+`menomeno` and `簡單JANDAN` were scraped into one file and are reported as one unit throughout
+the committed outputs, which is why six rows cover seven brand labels. `app.py` splits them back
+out, so the dashboard legend shows seven.
+
 Cross-brand pain-point ranking, from `outputs/pain_point_ranking.csv`:
 
 | Rank | Pain point | Mentions | Brands affected |
