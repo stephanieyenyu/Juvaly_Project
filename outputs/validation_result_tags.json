@@ -1,0 +1,535 @@
+{
+  "run_at": "2026-10-12T10:09:44.528556",
+  "n": 33,
+  "pain_points": {
+    "exact_set_match": 0.727,
+    "exact_match_n": "24/33",
+    "of_which_both_empty": 23,
+    "tag_precision": 0.333,
+    "tag_recall": 0.091,
+    "tag_f1": 0.143,
+    "tp": 1,
+    "fp": 2,
+    "fn": 10,
+    "disagreements": [
+      {
+        "post_id": 1,
+        "brand": "綠藤生機",
+        "human": [
+          "效果無感",
+          "香味不佳"
+        ],
+        "llm": [],
+        "missed": [
+          "效果無感",
+          "香味不佳"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 4,
+        "brand": "綠藤生機",
+        "human": [
+          "效果無感"
+        ],
+        "llm": [],
+        "missed": [
+          "效果無感"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 6,
+        "brand": "綠藤生機",
+        "human": [
+          "包裝設計"
+        ],
+        "llm": [],
+        "missed": [
+          "包裝設計"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 7,
+        "brand": "綠藤生機",
+        "human": [
+          "效果無感",
+          "香味不佳"
+        ],
+        "llm": [],
+        "missed": [
+          "效果無感",
+          "香味不佳"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 8,
+        "brand": "綠藤生機",
+        "human": [
+          "質地黏膩"
+        ],
+        "llm": [],
+        "missed": [
+          "質地黏膩"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 1,
+        "brand": "DR.WU",
+        "human": [],
+        "llm": [
+          "質地黏膩"
+        ],
+        "missed": [],
+        "invented": [
+          "質地黏膩"
+        ]
+      },
+      {
+        "post_id": 2,
+        "brand": "DR.WU",
+        "human": [
+          "效果無感"
+        ],
+        "llm": [],
+        "missed": [
+          "效果無感"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 6,
+        "brand": "DR.WU",
+        "human": [],
+        "llm": [
+          "吸收差"
+        ],
+        "missed": [],
+        "invented": [
+          "吸收差"
+        ]
+      },
+      {
+        "post_id": 9,
+        "brand": "DR.WU",
+        "human": [
+          "用量大",
+          "需搭配其他產品"
+        ],
+        "llm": [],
+        "missed": [
+          "用量大",
+          "需搭配其他產品"
+        ],
+        "invented": []
+      }
+    ]
+  },
+  "highlights": {
+    "exact_set_match": 0.242,
+    "exact_match_n": "8/33",
+    "of_which_both_empty": 4,
+    "tag_precision": 0.396,
+    "tag_recall": 0.5,
+    "tag_f1": 0.442,
+    "tp": 19,
+    "fp": 29,
+    "fn": 19,
+    "disagreements": [
+      {
+        "post_id": 1,
+        "brand": "Juvaly",
+        "human": [
+          "抗老修護有感"
+        ],
+        "llm": [
+          "保濕有感"
+        ],
+        "missed": [
+          "抗老修護有感"
+        ],
+        "invented": [
+          "保濕有感"
+        ]
+      },
+      {
+        "post_id": 3,
+        "brand": "Juvaly",
+        "human": [
+          "溫和不刺激",
+          "輕盈好吸收"
+        ],
+        "llm": [
+          "保濕有感",
+          "無香精",
+          "輕盈好吸收"
+        ],
+        "missed": [
+          "溫和不刺激"
+        ],
+        "invented": [
+          "保濕有感",
+          "無香精"
+        ]
+      },
+      {
+        "post_id": 5,
+        "brand": "Juvaly",
+        "human": [
+          "包裝質感",
+          "輕盈好吸收"
+        ],
+        "llm": [
+          "使用儀式感佳",
+          "保濕有感",
+          "包裝質感",
+          "輕盈好吸收"
+        ],
+        "missed": [],
+        "invented": [
+          "使用儀式感佳",
+          "保濕有感"
+        ]
+      },
+      {
+        "post_id": 7,
+        "brand": "Juvaly",
+        "human": [
+          "保濕有感",
+          "無香精",
+          "輕盈好吸收"
+        ],
+        "llm": [
+          "使用儀式感佳",
+          "保濕有感",
+          "無香精",
+          "輕盈好吸收"
+        ],
+        "missed": [],
+        "invented": [
+          "使用儀式感佳"
+        ]
+      },
+      {
+        "post_id": 10,
+        "brand": "Juvaly",
+        "human": [
+          "抗老修護有感",
+          "輕盈好吸收"
+        ],
+        "llm": [
+          "保濕有感",
+          "溫和不刺激",
+          "輕盈好吸收",
+          "香味宜人"
+        ],
+        "missed": [
+          "抗老修護有感"
+        ],
+        "invented": [
+          "保濕有感",
+          "溫和不刺激",
+          "香味宜人"
+        ]
+      },
+      {
+        "post_id": 13,
+        "brand": "Juvaly",
+        "human": [
+          "保濕有感",
+          "抗老修護有感"
+        ],
+        "llm": [
+          "使用儀式感佳",
+          "保濕有感",
+          "輕盈好吸收"
+        ],
+        "missed": [
+          "抗老修護有感"
+        ],
+        "invented": [
+          "使用儀式感佳",
+          "輕盈好吸收"
+        ]
+      },
+      {
+        "post_id": 1,
+        "brand": "綠藤生機",
+        "human": [
+          "溫和不刺激"
+        ],
+        "llm": [
+          "保濕有感"
+        ],
+        "missed": [
+          "溫和不刺激"
+        ],
+        "invented": [
+          "保濕有感"
+        ]
+      },
+      {
+        "post_id": 2,
+        "brand": "綠藤生機",
+        "human": [
+          "保濕有感",
+          "溫和不刺激"
+        ],
+        "llm": [
+          "保濕有感",
+          "溫和不刺激",
+          "輕盈好吸收"
+        ],
+        "missed": [],
+        "invented": [
+          "輕盈好吸收"
+        ]
+      },
+      {
+        "post_id": 4,
+        "brand": "綠藤生機",
+        "human": [
+          "無香精",
+          "香味宜人"
+        ],
+        "llm": [],
+        "missed": [
+          "無香精",
+          "香味宜人"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 5,
+        "brand": "綠藤生機",
+        "human": [
+          "保濕有感",
+          "輕盈好吸收"
+        ],
+        "llm": [],
+        "missed": [
+          "保濕有感",
+          "輕盈好吸收"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 7,
+        "brand": "綠藤生機",
+        "human": [],
+        "llm": [
+          "保濕有感",
+          "溫和不刺激",
+          "輕盈好吸收",
+          "香味宜人"
+        ],
+        "missed": [],
+        "invented": [
+          "保濕有感",
+          "溫和不刺激",
+          "輕盈好吸收",
+          "香味宜人"
+        ]
+      },
+      {
+        "post_id": 8,
+        "brand": "綠藤生機",
+        "human": [
+          "保濕有感",
+          "無香精"
+        ],
+        "llm": [
+          "保濕有感",
+          "輕盈好吸收"
+        ],
+        "missed": [
+          "無香精"
+        ],
+        "invented": [
+          "輕盈好吸收"
+        ]
+      },
+      {
+        "post_id": 1,
+        "brand": "DR.WU",
+        "human": [],
+        "llm": [
+          "保濕有感"
+        ],
+        "missed": [],
+        "invented": [
+          "保濕有感"
+        ]
+      },
+      {
+        "post_id": 2,
+        "brand": "DR.WU",
+        "human": [],
+        "llm": [
+          "保濕有感",
+          "溫和不刺激"
+        ],
+        "missed": [],
+        "invented": [
+          "保濕有感",
+          "溫和不刺激"
+        ]
+      },
+      {
+        "post_id": 3,
+        "brand": "DR.WU",
+        "human": [],
+        "llm": [
+          "其他"
+        ],
+        "missed": [],
+        "invented": [
+          "其他"
+        ]
+      },
+      {
+        "post_id": 4,
+        "brand": "DR.WU",
+        "human": [
+          "輕盈好吸收"
+        ],
+        "llm": [],
+        "missed": [
+          "輕盈好吸收"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 5,
+        "brand": "DR.WU",
+        "human": [
+          "溫和不刺激"
+        ],
+        "llm": [],
+        "missed": [
+          "溫和不刺激"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 6,
+        "brand": "DR.WU",
+        "human": [
+          "保濕有感",
+          "溫和不刺激",
+          "輕盈好吸收"
+        ],
+        "llm": [
+          "包裝質感",
+          "無香精",
+          "輕盈好吸收"
+        ],
+        "missed": [
+          "保濕有感",
+          "溫和不刺激"
+        ],
+        "invented": [
+          "包裝質感",
+          "無香精"
+        ]
+      },
+      {
+        "post_id": 8,
+        "brand": "DR.WU",
+        "human": [
+          "輕盈好吸收"
+        ],
+        "llm": [
+          "溫和不刺激"
+        ],
+        "missed": [
+          "輕盈好吸收"
+        ],
+        "invented": [
+          "溫和不刺激"
+        ]
+      },
+      {
+        "post_id": 9,
+        "brand": "DR.WU",
+        "human": [
+          "保濕有感"
+        ],
+        "llm": [
+          "輕盈好吸收"
+        ],
+        "missed": [
+          "保濕有感"
+        ],
+        "invented": [
+          "輕盈好吸收"
+        ]
+      },
+      {
+        "post_id": 10,
+        "brand": "DR.WU",
+        "human": [
+          "保濕有感",
+          "輕盈好吸收"
+        ],
+        "llm": [],
+        "missed": [
+          "保濕有感",
+          "輕盈好吸收"
+        ],
+        "invented": []
+      },
+      {
+        "post_id": 12,
+        "brand": "DR.WU",
+        "human": [],
+        "llm": [
+          "其他"
+        ],
+        "missed": [],
+        "invented": [
+          "其他"
+        ]
+      },
+      {
+        "post_id": 13,
+        "brand": "DR.WU",
+        "human": [],
+        "llm": [
+          "保濕有感"
+        ],
+        "missed": [],
+        "invented": [
+          "保濕有感"
+        ]
+      },
+      {
+        "post_id": 14,
+        "brand": "DR.WU",
+        "human": [],
+        "llm": [
+          "輕盈好吸收"
+        ],
+        "missed": [],
+        "invented": [
+          "輕盈好吸收"
+        ]
+      },
+      {
+        "post_id": 15,
+        "brand": "DR.WU",
+        "human": [
+          "包裝質感"
+        ],
+        "llm": [],
+        "missed": [
+          "包裝質感"
+        ],
+        "invented": []
+      }
+    ]
+  }
+}

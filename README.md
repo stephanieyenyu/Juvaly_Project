@@ -104,7 +104,10 @@ originally-delivered labelling, which was corrected through manual review before
 `docs/juvaly_report.pdf`). Errors cluster on neutral-sentiment reviews being confused with
 non-review or positive; see C-1 in known-issues for the full breakdown.
 
-Pain points and highlights were never validated against human labels at all. Only sentiment was.
+Pain points and highlights are now validated too, offline, by `scripts/validate_tags.py`
+against the same 33 rows. Both fall below sentiment: tag-level F1 0.143 for `pain_points` and
+0.442 for `highlights`. The breakdown and what it costs the pain-point ranking are in
+Evaluation; the diagnosis is in known-issues B-2.
 
 ---
 
@@ -118,8 +121,8 @@ Pain points and highlights were never validated against human labels at all. Onl
 | Valid reviews after excluding 非評論 | 389 | Derived |
 | Brands | 6 | Test parameter |
 | Sentiment agreement with human labels | 69.7–72.7% (two runs) | Measured, below 80% threshold, replacement model |
-| Pain-point labelling accuracy | not measured | Never validated |
-| Highlight labelling accuracy | not measured | Never validated |
+| Pain-point labelling accuracy | F1 0.143 (P 0.333 · R 0.091) | Measured, tag-level, 33-row validation set |
+| Highlight labelling accuracy | F1 0.442 (P 0.396 · R 0.500) | Measured, tag-level, 33-row validation set |
 | Reviews discarded during cleaning | not recorded | Raw data absent |
 | Inter-run labelling stability | 91% (30/33) identical | Measured, two runs |
 
@@ -262,6 +265,34 @@ Cross-brand pain-point ranking, from `outputs/pain_point_ranking.csv`:
 **Juvaly's only pain-point mention across nine valid reviews is 價格偏高.** It is the sole brand
 with zero mentions of 質地黏膩, the market's largest shared complaint.
 
+**The pain-point column the ranking above is built from does not survive validation.**
+`scripts/validate_tags.py` compares the committed labels against the same 33-row human set used
+for sentiment, scoring each tag as its own judgement rather than each row as pass or fail:
+
+| Column | Exact set match | Tag precision | Tag recall | Tag F1 |
+|---|---|---|---|---|
+| `pain_points` | 24/33 (72.7%) | 0.333 | 0.091 | 0.143 |
+| `highlights` | 8/33 (24.2%) | 0.396 | 0.500 | 0.442 |
+
+The exact-match column is the misleading one and is reported here only to defuse it. Twenty-three
+of the twenty-four pain-point agreements are rows where both the human and the model left the
+field blank. Counting those as correct rewards a model that never emits a pain point, which is
+close to what happened: of eleven pain-point tags the human assigned, the model found one. The
+most-missed tag is 效果無感 (4 of 4 missed) — the one that requires reading a whole review rather
+than matching a word.
+
+Highlights fail differently. The same tags appear on both sides of the ledger — 保濕有感 was
+missed 4 times and invented 9 — so the vocabulary is not the problem; the model attaches
+plausible tags to the wrong reviews. Precision 0.396 means three of every five highlight tags in
+the committed data are not supported by the human reading of that review.
+
+Two limits on how hard these numbers can be pushed. The validation set holds only eleven human
+pain-point tags in total, so recall 0.091 is one hit out of eleven and its confidence interval is
+wide. And the figures measure the current replacement model against labels produced by the
+decommissioned one, the same mismatch that affects the sentiment figures. What they establish is
+a direction, not a precise rate: **the pain-point ranking in this section is built on a column
+that recovers under a tenth of what a human marks**, and should be read as indicative at best.
+
 **These numbers do not match `docs/juvaly_report.pdf`.** That report's pain-point table (28 / 8 /
 8 / 8 / 5 / 5) was tallied by hand under a different, undocumented matching rule before this code
 existed. Only the table above is reproducible from committed code — see
@@ -291,7 +322,10 @@ as unreliable.
 and did not clear this project's own 80% bar (69.7–72.7%, see Evaluation). It was also checked
 against a replacement model, not the one that produced the committed data, because the original
 was decommissioned mid-project. Pain points and highlights — the two columns the client actually
-asked for — were never checked against a human standard at all.
+asked for — have now been checked against the same human standard and are the weaker of the two:
+tag-level F1 0.143 and 0.442 respectively (see Evaluation). The pain-point column in particular
+recovers roughly one in eleven of the tags a human assigns, which puts the cross-brand pain-point
+ranking on a much weaker footing than its presentation suggests.
 
 **External validity.** Six brands from one category on one platform in one language. The codebook
 names cosmetics-specific categories and cannot be applied elsewhere without rewriting.
@@ -359,6 +393,7 @@ clean_brand.py strips author block, 50-char floor, renumbers
 _codebook.py the labelling standard, imported by two callers
 groq_validate.py agreement check, writes result to outputs/, not just stdout
 groq_label_batch.py batch labelling, 10-row checkpoint, 錯誤 resume
+validate_tags.py offline tag-level check of pain_points and highlights, no API key needed
 analyze.py cross-brand aggregation, sentiment summary, pain-point ranking
 data/labeled/ 6 brand CSVs (500 rows, 8 columns) + validation_set.csv (33 rows, 6 columns)
 outputs/
@@ -366,6 +401,7 @@ final_competitor_analysis.png current — regenerated by plot_summary(), see kno
 competitor_summary_final.csv current — matches data/labeled exactly
 pain_point_ranking.csv current — disagrees with docs/juvaly_report.pdf, see known-issues C-3
 validation_result.json latest B-1/B-3 run (69.7%)
+validation_result_tags.json pain-point and highlight agreement, with every disagreement listed
 validation_result_run1.json first of two runs (72.7%), kept for stability comparison
 docs/
 images/ dashboard screenshots used in this README

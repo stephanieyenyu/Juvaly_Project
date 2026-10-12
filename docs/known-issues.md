@@ -11,7 +11,7 @@ be defects. B-items are unverified. C-items are defects. D-items are documentati
 | A-1 | No API key is committed | Not a defect | No action |
 | A-2 | No reviewer identifiers in the labelled data | Not a defect | No action |
 | B-1 | Sentiment agreement with human labels is unknown | Verified | Below threshold — 69.7–72.7% |
-| B-2 | Pain-point and highlight labelling never validated | Unverified | Open |
+| B-2 | Pain-point and highlight labelling never validated | Verified | Well below sentiment — F1 0.143 / 0.442 |
 | B-3 | Labelling stability across runs never tested | Verified | Mostly stable, not deterministic |
 | C-1 | Committed summary disagreed with committed data; demo image was stale | Defect | Fixed |
 | C-2 | `analyze.py` could not run against the committed data | Defect | Fixed |
@@ -70,17 +70,34 @@ open decision, not a defect.
 
 ---
 
-### B-2　Pain-point and highlight labelling never validated
+### B-2　Pain-point and highlight labelling validated, and both fall well short
 
-**Symptom.** `groq_validate.py` compares only the `sentiment` field. The two multi-label columns
-go to production unchecked.
+**Symptom.** `groq_validate.py` compares only the `sentiment` field, so the two multi-label
+columns went to production unchecked. `scripts/validate_tags.py` now checks them offline against
+the same 33-row human set. `pain_points` scores tag-level F1 0.143 (precision 0.333, recall
+0.091); `highlights` scores F1 0.442 (precision 0.396, recall 0.500).
 
-**Cause.** Sentiment is a single value and comparison is a string match. Pain points are a
-semicolon-separated subset of fifteen categories, so a label can be partly correct, and no
-partial-credit rule was defined.
+**Cause.** Two different failures. Pain points are under-emitted: of eleven tags the human
+assigned, the model produced one, and 效果無感 was missed in all four rows carrying it. That tag
+requires reading a review end to end rather than matching a phrase. Highlights are mis-attached
+rather than unknown — the same tags appear as both missed and invented (保濕有感 missed 4,
+invented 9) — so the model has the vocabulary and applies it to the wrong reviews.
 
-**Consequence.** The two columns the client actually asked about are the two with no accuracy
-evidence.
+**Why it was not caught earlier.** Exact-set-match on `pain_points` reads 72.7%, which looks
+like the sentiment figure. Twenty-three of those twenty-four agreements are rows where both
+sides are blank. A row-level pass/fail metric on a sparse multi-label column rewards silence,
+and that is what the number was measuring.
+
+**Consequence.** The cross-brand pain-point ranking in the README, and the radar chart in
+`app.py` that is computed from the same column, rest on a column that recovers under a tenth of
+what a human marks. Both are now labelled as indicative in the README rather than presented as
+measured. The ranking has not been withdrawn, because the direction may still be right; what is
+gone is any claim that it is accurate.
+
+**Limits of this measurement.** Eleven human pain-point tags in total, so recall 0.091 is one
+hit out of eleven and carries a wide interval. The check also compares the current replacement
+model against labels made by the decommissioned one, the same confound as B-1 and B-3. Raising
+the floor needs a larger human set before it needs a better prompt.
 
 ---
 
