@@ -70,7 +70,7 @@ open decision, not a defect.
 
 ---
 
-### B-2　Pain-point and highlight labelling validated, and both fall well short
+### B-2　Pain-point and highlight labelling never validated
 
 **Symptom.** `groq_validate.py` compares only the `sentiment` field, so the two multi-label
 columns went to production unchecked. `scripts/validate_tags.py` now checks them offline against
