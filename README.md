@@ -17,8 +17,6 @@ every committed figure, including the demo image, reproduces from `scripts/analy
 
 ---
 
-## Demo
-
 ![Competitor sentiment and pain-point comparison](outputs/final_competitor_analysis.png)
 
 *Aggregate output: pain-point ranking and per-brand non-review rate and positive rate across all
@@ -26,9 +24,19 @@ six brands. Regenerated from the current `competitor_summary_final.csv` and
 `pain_point_ranking.csv` by `scripts/analyze.py`'s `plot_summary()`. See
 [`docs/known-issues.md`](docs/known-issues.md) C-1.*
 
+![Single-brand view of the Streamlit dashboard](docs/images/dashboard-brand-view.png)
+
+*Single-brand view: headline counts, pain-point radar, sentiment split and ranked highlights for
+one brand, read from the committed `data/labeled/*_labeled.csv`.*
+
+![Cross-brand pain-point comparison in the Streamlit dashboard](docs/images/dashboard-cross-brand.png)
+
+*Cross-brand view: the same six pain-point dimensions overlaid for every brand in the set, selectable
+from the sidebar. Served by `app.py`.*
+
 ---
 
-## What It Does
+## What it does
 
 **Treats marketing copy as a labelling class rather than filtering it upstream.** The codebook
 defines 非評論 (not a review) as a fourth sentiment value, so text that turns out to be official
@@ -148,7 +156,7 @@ product category, and establish whether a language model applies it consistently
 
 ---
 
-## Shared Pipeline and Data Flow
+## System Architecture
 
 There is no service and no deployment target. Seven scripts run in sequence, each reading the
 previous one's output from disk.
@@ -360,6 +368,7 @@ pain_point_ranking.csv current — disagrees with docs/juvaly_report.pdf, see kn
 validation_result.json latest B-1/B-3 run (69.7%)
 validation_result_run1.json first of two runs (72.7%), kept for stability comparison
 docs/
+images/ dashboard screenshots used in this README
 architecture.md
 metrics.md
 known-issues.md
